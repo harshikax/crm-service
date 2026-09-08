@@ -2350,7 +2350,7 @@ enum KbVisibility {
 
 // CRM DEPARTMENTS
 model departments {
-  id                String              @id @default(uuid()) @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
   name              String              @db.VarChar(255)
   description       String?             @db.VarChar(255)
   is_active         Boolean             @default(true)
@@ -2361,7 +2361,7 @@ model departments {
 
 // TICKET CATEGORIES
 model ticket_categories {
-  id                String              @id @default(uuid()) @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
   name              String              @db.VarChar(255)
   description       String?             @db.Text
   is_archived       Boolean             @default(false)
@@ -2372,13 +2372,13 @@ model ticket_categories {
 
 // TICKETS
 model tickets {
-  id                      String                    @id @default(uuid()) @db.VarChar(36)
+  id                      Int                       @id @default(autoincrement())
   ticket_no               String                    @unique @db.VarChar(50)
   system_type             SystemType
   waybill_no              String?                   @db.VarChar(100)
   received_from           ReceivedFrom
-  department_id           String                    @db.VarChar(36)
-  category_id             String                    @db.VarChar(36)
+  department_id           Int
+  category_id             Int
   priority                Priority                  @default(NORMAL)
   status                  TicketStatus              @default(OPEN)
   inquiry                 String                    @db.VarChar(255)
@@ -2401,13 +2401,13 @@ model tickets {
   assignments             ticket_assignments[]
   attachments             ticket_attachments[]
   ticket_kb               ticket_kb[]
-  crm_notifications           crm_notifications[]
+  crm_notifications       crm_notifications[]
 }
 
 // TICKET STATUS HISTORY
 model ticket_status_history {
-  id                String              @id @default(uuid()) @db.VarChar(36)
-  ticket_id         String              @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
+  ticket_id         Int
   status            TicketStatus
   remarks           String?             @db.Text
   changed_by        BigInt              @db.UnsignedBigInt
@@ -2419,8 +2419,8 @@ model ticket_status_history {
 
 // TICKET COMMENTS
 model ticket_comments {
-  id                String              @id @default(uuid()) @db.VarChar(36)
-  ticket_id         String              @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
+  ticket_id         Int
   staff_id          BigInt              @db.UnsignedBigInt
   comment           String              @db.Text
   created_at        DateTime            @default(now()) @db.Timestamp(0)
@@ -2429,8 +2429,8 @@ model ticket_comments {
 
 // TICKET ASSIGNMENTS
 model ticket_assignments {
-  id                String              @id @default(uuid()) @db.VarChar(36)
-  ticket_id         String              @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
+  ticket_id         Int
   assigned_to       BigInt              @db.UnsignedBigInt
   assigned_by       BigInt              @db.UnsignedBigInt
   assigned_at       DateTime            @default(now()) @db.Timestamp(0)
@@ -2440,8 +2440,8 @@ model ticket_assignments {
 
 // TICKET ATTACHMENTS (AWS S3)
 model ticket_attachments {
-  id                String              @id @default(uuid()) @db.VarChar(36)
-  ticket_id         String              @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
+  ticket_id         Int
   file_name         String              @db.VarChar(255)
   file_path         String              @db.VarChar(500)
   file_type         String              @db.VarChar(100)
@@ -2454,7 +2454,7 @@ model ticket_attachments {
 
 // KNOWLEDGE BASE
 model kb_categories {
-  id                String              @id @default(uuid()) @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
   name              String              @db.VarChar(255)
   description       String?             @db.Text
   is_archived       Boolean             @default(false)
@@ -2464,8 +2464,8 @@ model kb_categories {
 }
 
 model knowledge_base {
-  id                String              @id @default(uuid()) @db.VarChar(36)
-  category_id       String              @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
+  category_id       Int
   title             String              @db.VarChar(255)
   description       String              @db.LongText
   visibility        KbVisibility        @default(INTERNAL)
@@ -2480,37 +2480,40 @@ model knowledge_base {
 
 // KNOWLEDGE BASE TAGS
 model kb_tags {
-  id                String              @id @default(uuid()) @db.VarChar(36)
+  id                Int                 @id @default(autoincrement())
   name              String              @unique @db.VarChar(100)
   created_at        DateTime            @default(now()) @db.Timestamp(0)
   articles          knowledge_base_tags[]
 }
 model knowledge_base_tags {
-  kb_id             String              @db.VarChar(36)
-  tag_id            String              @db.VarChar(36)
+  kb_id             Int
+  tag_id            Int
+
   kb                knowledge_base      @relation(fields: [kb_id], references: [id], onDelete: Cascade)
   tag               kb_tags             @relation(fields: [tag_id], references: [id], onDelete: Cascade)
   @@id([kb_id, tag_id])
 }
+
 model ticket_kb {
-  ticket_id         String              @db.VarChar(36)
-  kb_id             String              @db.VarChar(36)
+  ticket_id         Int
+  kb_id             Int
+
   ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
   kb                knowledge_base      @relation(fields: [kb_id], references: [id], onDelete: Cascade)
+
   @@id([ticket_id, kb_id])
 }
 
 
 // CRM NOTIFICATIONS
-
-model crm_notifications  {
-  id                String              @id @default(uuid()) @db.VarChar(36)
+model crm_notifications {
+  id                Int                 @id @default(autoincrement())
   staff_id          BigInt              @db.UnsignedBigInt
-  ticket_id         String?             @db.VarChar(36)
+  ticket_id         Int?
   title             String              @db.VarChar(255)
   message           String              @db.Text
   is_read           Boolean             @default(false)
   created_at        DateTime            @default(now()) @db.Timestamp(0)
+
   ticket            tickets?            @relation(fields: [ticket_id], references: [id], onDelete: SetNull)
 }
-
