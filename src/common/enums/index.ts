@@ -1,2 +1,2 @@
-export * from './crm.enum.ts';
-export * from './role.enum.ts';
+export * from './crm.enum';
+export * from './role.enum';
