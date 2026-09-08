@@ -13,12 +13,13 @@ import { paginate } from '../common/utils/prisma-paginator';
 export class TicketCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createCategoryDto: CreateTicketCategoryDto) {
+  async create(createCategoryDto: CreateTicketCategoryDto, userId?: number) {
     return this.prisma.ticket_categories.create({
       data: {
         name: createCategoryDto.name,
         description: createCategoryDto.description,
         is_archived: createCategoryDto.is_archived ?? false,
+        updated_by: userId ? BigInt(userId) : undefined,
       },
     });
   }
@@ -36,20 +37,34 @@ export class TicketCategoriesService {
       ];
     }
 
-    return paginate(this.prisma.ticket_categories, filterDto, {
+    const result = await paginate(this.prisma.ticket_categories, filterDto, {
       where,
       include: {
+        updater: {
+          select: { name: true },
+        },
         _count: {
           select: { tickets: true },
         },
       },
     });
+    
+    return {
+      ...result,
+      data: (result.data as any[]).map(({ updater, ...category }) => ({
+        ...category,
+        updated_by: updater?.name ?? null,
+      })),
+    };
   }
 
   async findOne(id: number) {
     const category = await this.prisma.ticket_categories.findUnique({
       where: { id },
       include: {
+        updater: {
+          select: { name: true },
+        },
         _count: {
           select: { tickets: true },
         },
@@ -60,25 +75,60 @@ export class TicketCategoriesService {
       throw new NotFoundException(`Ticket Category with ID ${id} not found`);
     }
 
-    return category;
+    const { updater, ...rest } = category;
+    return {
+      ...rest,
+      updated_by: updater?.name ?? null,
+    };
   }
 
-  async update(id: number, updateCategoryDto: UpdateTicketCategoryDto) {
+  async update(
+    id: number,
+    updateCategoryDto: UpdateTicketCategoryDto,
+    userId?: number,
+  ) {
     await this.findOne(id);
 
-    return this.prisma.ticket_categories.update({
+    const updated = await this.prisma.ticket_categories.update({
       where: { id },
-      data: updateCategoryDto,
+      data: {
+        ...updateCategoryDto,
+        updated_by: userId ? BigInt(userId) : undefined,
+      },
+      include: {
+        updater: { select: { name: true } },
+        _count: { select: { tickets: true } },
+      },
     });
+
+    const { updater, ...rest } = updated;
+    return {
+      ...rest,
+      updated_by: updater?.name ?? null,
+    };
   }
 
-  async toggleArchive(id: number) {
+
+  async toggleArchive(id: number, userId?: number) {
     const category = await this.findOne(id);
 
-    return this.prisma.ticket_categories.update({
+    const updated = await this.prisma.ticket_categories.update({
       where: { id },
-      data: { is_archived: !category.is_archived },
+      data: {
+        is_archived: !category.is_archived,
+        updated_by: userId ? BigInt(userId) : undefined,
+      },
+      include: {
+        updater: { select: { name: true } },
+        _count: { select: { tickets: true } },
+      },
     });
+
+    const { updater, ...rest } = updated;
+    return {
+      ...rest,
+      updated_by: updater?.name ?? null,
+    };
   }
 
   async remove(id: number) {

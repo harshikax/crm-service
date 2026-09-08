@@ -1967,7 +1967,7 @@ model staff {
   staff_password_audit_logs_staff_password_audit_logs_changed_byTostaff staff_password_audit_logs[]         @relation("staff_password_audit_logs_changed_byTostaff")
   staff_password_audit_logs_staff_password_audit_logs_staff_idTostaff   staff_password_audit_logs[]         @relation("staff_password_audit_logs_staff_idTostaff")
   staff_password_histories                                              staff_password_histories[]
-
+  ticket_categories_updated                                             ticket_categories[]                 @relation("category_updater")
   @@index([created_by], map: "staff_created_by_foreign")
   @@index([updated_by], map: "staff_updated_by_foreign")
 }
@@ -2365,9 +2365,11 @@ model ticket_categories {
   name              String              @db.VarChar(255)
   description       String?             @db.Text
   is_archived       Boolean             @default(false)
+  updated_by        BigInt?             @db.UnsignedBigInt
   created_at        DateTime            @default(now()) @db.Timestamp(0)
   updated_at        DateTime            @updatedAt @db.Timestamp(0)
   tickets           tickets[]
+  updater           staff?              @relation("category_updater", fields: [updated_by], references: [id])
 }
 
 // TICKETS
