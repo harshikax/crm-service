@@ -2313,3 +2313,204 @@ enum clients_verification_document_type {
   driving_licenses
   passport
 }
+
+
+// CRM ENUMS
+enum SystemType {
+  COD
+  DOM
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ReceivedFrom {
+  CLIENT
+  CUSTOMER
+}
+
+enum KbVisibility {
+  INTERNAL
+  PUBLIC
+}
+
+// CRM DEPARTMENTS
+model departments {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  name              String              @db.VarChar(255)
+  description       String?             @db.VarChar(255)
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  updated_at        DateTime            @updatedAt @db.Timestamp(0)
+  tickets           tickets[]
+}
+
+// TICKET CATEGORIES
+model ticket_categories {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  name              String              @db.VarChar(255)
+  description       String?             @db.Text
+  is_archived       Boolean             @default(false)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  updated_at        DateTime            @updatedAt @db.Timestamp(0)
+  tickets           tickets[]
+}
+
+// TICKETS
+model tickets {
+  id                      String                    @id @default(uuid()) @db.VarChar(36)
+  ticket_no               String                    @unique @db.VarChar(50)
+  system_type             SystemType
+  waybill_no              String?                   @db.VarChar(100)
+  received_from           ReceivedFrom
+  department_id           String                    @db.VarChar(36)
+  category_id             String                    @db.VarChar(36)
+  priority                Priority                  @default(NORMAL)
+  status                  TicketStatus              @default(OPEN)
+  inquiry                 String                    @db.VarChar(255)
+  inquiry_description     String?                   @db.Text
+  assigned_user_id        BigInt?                   @db.UnsignedBigInt
+  created_by              BigInt                    @db.UnsignedBigInt
+  closed_by               BigInt?                   @db.UnsignedBigInt
+
+  // SLA calculated fields
+  response_due_at         DateTime?                 @db.Timestamp(0)
+  resolution_due_at       DateTime?                 @db.Timestamp(0)
+  created_at              DateTime                  @default(now()) @db.Timestamp(0)
+  updated_at              DateTime                  @updatedAt @db.Timestamp(0)
+
+  // Relations
+  department              departments               @relation(fields: [department_id], references: [id])
+  category                ticket_categories         @relation(fields: [category_id], references: [id])
+  status_history          ticket_status_history[]
+  comments                ticket_comments[]
+  assignments             ticket_assignments[]
+  attachments             ticket_attachments[]
+  ticket_kb               ticket_kb[]
+  crm_notifications           crm_notifications[]
+}
+
+// TICKET STATUS HISTORY
+model ticket_status_history {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  ticket_id         String              @db.VarChar(36)
+  status            TicketStatus
+  remarks           String?             @db.Text
+  changed_by        BigInt              @db.UnsignedBigInt
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+
+  ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
+
+
+// TICKET COMMENTS
+model ticket_comments {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  ticket_id         String              @db.VarChar(36)
+  staff_id          BigInt              @db.UnsignedBigInt
+  comment           String              @db.Text
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
+
+// TICKET ASSIGNMENTS
+model ticket_assignments {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  ticket_id         String              @db.VarChar(36)
+  assigned_to       BigInt              @db.UnsignedBigInt
+  assigned_by       BigInt              @db.UnsignedBigInt
+  assigned_at       DateTime            @default(now()) @db.Timestamp(0)
+  ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
+
+
+// TICKET ATTACHMENTS (AWS S3)
+model ticket_attachments {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  ticket_id         String              @db.VarChar(36)
+  file_name         String              @db.VarChar(255)
+  file_path         String              @db.VarChar(500)
+  file_type         String              @db.VarChar(100)
+  file_size         BigInt
+  uploaded_by       BigInt              @db.UnsignedBigInt
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
+
+
+// KNOWLEDGE BASE
+model kb_categories {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  name              String              @db.VarChar(255)
+  description       String?             @db.Text
+  is_archived       Boolean             @default(false)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  updated_at        DateTime            @updatedAt @db.Timestamp(0)
+  articles          knowledge_base[]
+}
+
+model knowledge_base {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  category_id       String              @db.VarChar(36)
+  title             String              @db.VarChar(255)
+  description       String              @db.LongText
+  visibility        KbVisibility        @default(INTERNAL)
+  created_by        BigInt              @db.UnsignedBigInt
+  deleted_at        DateTime?           @db.Timestamp(0)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  updated_at        DateTime            @updatedAt @db.Timestamp(0)
+  category          kb_categories       @relation(fields: [category_id], references: [id])
+  tags              knowledge_base_tags[]
+  ticket_links      ticket_kb[]
+}
+
+// KNOWLEDGE BASE TAGS
+model kb_tags {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  name              String              @unique @db.VarChar(100)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  articles          knowledge_base_tags[]
+}
+model knowledge_base_tags {
+  kb_id             String              @db.VarChar(36)
+  tag_id            String              @db.VarChar(36)
+  kb                knowledge_base      @relation(fields: [kb_id], references: [id], onDelete: Cascade)
+  tag               kb_tags             @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+  @@id([kb_id, tag_id])
+}
+model ticket_kb {
+  ticket_id         String              @db.VarChar(36)
+  kb_id             String              @db.VarChar(36)
+  ticket            tickets             @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  kb                knowledge_base      @relation(fields: [kb_id], references: [id], onDelete: Cascade)
+  @@id([ticket_id, kb_id])
+}
+
+
+// CRM NOTIFICATIONS
+
+model crm_notifications  {
+  id                String              @id @default(uuid()) @db.VarChar(36)
+  staff_id          BigInt              @db.UnsignedBigInt
+  ticket_id         String?             @db.VarChar(36)
+  title             String              @db.VarChar(255)
+  message           String              @db.Text
+  is_read           Boolean             @default(false)
+  created_at        DateTime            @default(now()) @db.Timestamp(0)
+  ticket            tickets?            @relation(fields: [ticket_id], references: [id], onDelete: SetNull)
+}
+
