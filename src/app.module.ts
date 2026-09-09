@@ -7,6 +7,7 @@ import { DepartmentsModule } from './departments/departments.module';
 import { TicketCategoriesModule } from './ticket-categories/ticket-categories.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { KbCategoriesModule } from './kb-categories/kb-categories.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     AuthModule,
     DepartmentsModule,
     TicketCategoriesModule,
+    KbCategoriesModule,
   ],
   controllers: [AppController],
   providers: [

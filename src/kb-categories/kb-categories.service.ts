@@ -4,28 +4,29 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTicketCategoryDto } from './dto/create-ticket-category.dto';
-import { UpdateTicketCategoryDto } from './dto/update-ticket-category.dto';
-import { TicketCategoryListDto } from './dto/ticket-category-list.dto';
+import { CreateKbCategoryDto } from './dto/create-kb-category.dto';
+import { UpdateKbCategoryDto } from './dto/update-kb-category.dto';
+import { KbCategoryListDto } from './dto/kb-category-list.dto';
 import { paginate } from '../common/utils/prisma-paginator';
 
 @Injectable()
-export class TicketCategoriesService {
+export class KbCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createCategoryDto: CreateTicketCategoryDto, userId?: number) {
-    return this.prisma.ticket_categories.create({
+  async create(createKbCategoryDto: CreateKbCategoryDto, userId?: number) {
+    return this.prisma.kb_categories.create({
       data: {
-        name: createCategoryDto.name,
-        description: createCategoryDto.description,
-        is_archived: createCategoryDto.is_archived ?? false,
+        name: createKbCategoryDto.name,
+        description: createKbCategoryDto.description,
+        is_archived: createKbCategoryDto.is_archived ?? false,
         updated_by: userId ? BigInt(userId) : undefined,
       },
     });
   }
 
-  async findAll(filterDto: TicketCategoryListDto) {
+  async findAll(filterDto: KbCategoryListDto) {
     const where: any = {};
+
     if (filterDto.is_archived !== undefined) {
       where.is_archived = filterDto.is_archived;
     }
@@ -37,18 +38,18 @@ export class TicketCategoriesService {
       ];
     }
 
-    const result = await paginate(this.prisma.ticket_categories, filterDto, {
+    const result = await paginate(this.prisma.kb_categories, filterDto, {
       where,
+
       include: {
         updater: {
           select: { name: true },
         },
         _count: {
-          select: { tickets: true },
+          select: { articles: true },
         },
       },
     });
-
     return {
       ...result,
       data: (result.data as any[]).map(({ updater, ...category }) => ({
@@ -59,22 +60,23 @@ export class TicketCategoriesService {
   }
 
   async findOne(id: number) {
-    const category = await this.prisma.ticket_categories.findUnique({
+    const category = await this.prisma.kb_categories.findUnique({
       where: { id },
       include: {
         updater: {
           select: { name: true },
         },
         _count: {
-          select: { tickets: true },
+          select: { articles: true },
         },
       },
     });
 
     if (!category) {
-      throw new NotFoundException(`Ticket Category with ID ${id} not found`);
+      throw new NotFoundException(
+        `Knowledge Base Category with ID ${id} not found`,
+      );
     }
-
     const { updater, ...rest } = category;
     return {
       ...rest,
@@ -84,12 +86,12 @@ export class TicketCategoriesService {
 
   async update(
     id: number,
-    updateCategoryDto: UpdateTicketCategoryDto,
+    updateCategoryDto: UpdateKbCategoryDto,
     userId?: number,
   ) {
     await this.findOne(id);
 
-    return this.prisma.ticket_categories.update({
+    return this.prisma.kb_categories.update({
       where: { id },
       data: {
         ...updateCategoryDto,
@@ -101,7 +103,7 @@ export class TicketCategoriesService {
   async toggleArchive(id: number, userId?: number) {
     const category = await this.findOne(id);
 
-    return this.prisma.ticket_categories.update({
+    return this.prisma.kb_categories.update({
       where: { id },
       data: {
         is_archived: !category.is_archived,
@@ -113,13 +115,13 @@ export class TicketCategoriesService {
   async remove(id: number) {
     const category = await this.findOne(id);
 
-    if (category._count.tickets > 0) {
+    if (category._count.articles > 0) {
       throw new BadRequestException(
-        `Cannot delete category "${category.name}" because it has ${category._count.tickets} active tickets. Please archive it instead.`,
+        `Cannot delete category "${category.name}" because it contains ${category._count.articles} articles. Please archive it instead.`,
       );
     }
 
-    return this.prisma.ticket_categories.delete({
+    return this.prisma.kb_categories.delete({
       where: { id },
     });
   }

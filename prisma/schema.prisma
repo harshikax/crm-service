@@ -1968,6 +1968,7 @@ model staff {
   staff_password_audit_logs_staff_password_audit_logs_staff_idTostaff   staff_password_audit_logs[]         @relation("staff_password_audit_logs_staff_idTostaff")
   staff_password_histories                                              staff_password_histories[]
   ticket_categories_updated                                             ticket_categories[]                 @relation("category_updater")
+  kb_categories_updated                                                 kb_categories[]                     @relation("kb_category_updater")
   @@index([created_by], map: "staff_created_by_foreign")
   @@index([updated_by], map: "staff_updated_by_foreign")
 }
@@ -2460,9 +2461,12 @@ model kb_categories {
   name              String              @db.VarChar(255)
   description       String?             @db.Text
   is_archived       Boolean             @default(false)
+  updated_by        BigInt?             @db.UnsignedBigInt
   created_at        DateTime            @default(now()) @db.Timestamp(0)
   updated_at        DateTime            @updatedAt @db.Timestamp(0)
   articles          knowledge_base[]
+  updater           staff?              @relation("kb_category_updater", fields: [updated_by], references: [id])
+
 }
 
 model knowledge_base {
