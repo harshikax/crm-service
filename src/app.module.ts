@@ -8,6 +8,7 @@ import { TicketCategoriesModule } from './ticket-categories/ticket-categories.mo
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { KbCategoriesModule } from './kb-categories/kb-categories.module';
+import { DropdownsModule } from './dropdowns/dropdowns.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { KbCategoriesModule } from './kb-categories/kb-categories.module';
     DepartmentsModule,
     TicketCategoriesModule,
     KbCategoriesModule,
+    DropdownsModule,
   ],
   controllers: [AppController],
   providers: [
