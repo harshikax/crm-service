@@ -8,53 +8,90 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { TicketCategoriesService } from './ticket-categories.service';
 import { CreateTicketCategoryDto } from './dto/create-ticket-category.dto';
 import { UpdateTicketCategoryDto } from './dto/update-ticket-category.dto';
 import { TicketCategoryListDto } from './dto/ticket-category-list.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'; 
 import { CurrentUser } from '../auth/current-user.decorator';
+import { ApiStatus } from '../common/constants/api-status.constants';
+import {
+  makeReturn,
+  makePaginationReturn,
+} from '../common/helpers/response.helper';
 
 @Controller('ticket-categories')
 export class TicketCategoriesController {
   constructor(private readonly categoriesService: TicketCategoriesService) {}
 
   @Post()
-  create(@Body() createCategoryDto: CreateTicketCategoryDto, @CurrentUser('id') userId: number) {
-    return this.categoriesService.create(createCategoryDto, userId);
+  async create(
+    @Body() createCategoryDto: CreateTicketCategoryDto,
+    @CurrentUser('id') userId: number,
+  ) {
+    const category = await this.categoriesService.create(
+      createCategoryDto,
+      userId,
+    );
+    return makeReturn({
+      statusCode: ApiStatus.CREATED,
+      message: 'Ticket Category created successfully',
+      data: category,
+    });
   }
 
   @Get()
-  findAll(@Query() filterDto: TicketCategoryListDto) {
-    return this.categoriesService.findAll(filterDto);
+  async findAll(@Query() filterDto: TicketCategoryListDto) {
+    const { data, pagination } =
+      await this.categoriesService.findAll(filterDto);
+    return makePaginationReturn({
+      data,
+      total: pagination.total,
+      perPage: pagination.limit,
+      currentPage: pagination.page,
+    });
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.categoriesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const category = await this.categoriesService.findOne(id);
+    return makeReturn({ data: category });
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateTicketCategoryDto,
     @CurrentUser('id') userId: number,
   ) {
-    return this.categoriesService.update(id, updateCategoryDto, userId);
+    const category = await this.categoriesService.update(
+      id,
+      updateCategoryDto,
+      userId,
+    );
+    return makeReturn({
+      message: 'Ticket Category updated successfully',
+      data: category,
+    });
   }
 
   @Patch(':id/archive')
-  toggleArchive(
+  async toggleArchive(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('id') userId: number,
   ) {
-    return this.categoriesService.toggleArchive(id, userId);
+    const category = await this.categoriesService.toggleArchive(id, userId);
+    return makeReturn({
+      message: 'Ticket Category  status toggled successfully',
+      data: category,
+    });
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.categoriesService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.categoriesService.remove(id);
+    return makeReturn({
+      message: 'Ticket Category deleted successfully',
+    });
   }
 }

@@ -32,29 +32,42 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const secret = process.env.JWT_SECRET;
-      const payload = await this.jwtService.verifyAsync(token, { secret });
+      const decoded = this.jwtService.decode(token) as any;
 
-      if (payload.token) {
-        const innerPayload = this.jwtService.decode(payload.token) as any;
-        if (innerPayload?.exp) {
-          const currentTime = Math.floor(Date.now() / 1000);
-          if (innerPayload.exp < currentTime) {
-            throw new UnauthorizedException('Token has expired');
-          }
-        }
+      if (!decoded || typeof decoded !== 'object') {
+        throw new UnauthorizedException('Invalid token structure');
       }
 
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      if (!decoded.token || typeof decoded.token !== 'string') {
+        throw new UnauthorizedException('Inner session token is missing');
+      }
+
+      const innerPayload = this.jwtService.decode(decoded.token) as any;
+      if (!innerPayload || typeof innerPayload !== 'object') {
+        throw new UnauthorizedException('Invalid inner session token');
+      }
+
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      if (innerPayload.exp && Number(innerPayload.exp) < currentTime) {
         throw new UnauthorizedException('Token has expired');
       }
 
+      const userData = decoded.user || {};
       request.user = {
-        id: payload.user?.id ? Number(payload.user.id) : undefined,
-        name: payload.user?.name,
-        email: payload.user?.email,
-        roles: payload.role || [],
-        permissions: (payload.permissions || []).map((p: any) => p.authority),
+        id: userData.id
+          ? Number(userData.id)
+          : innerPayload.sub
+            ? Number(innerPayload.sub)
+            : undefined,
+        name: userData.name,
+        email: userData.email,
+        roles: decoded.role || [],
+        permissions: Array.isArray(decoded.permissions)
+          ? decoded.permissions.map((p: any) => p.authority || p.name || p)
+          : [],
+        guard: decoded.guard,
+        rawUser: userData,
       };
 
       return true;
@@ -62,7 +75,7 @@ export class JwtAuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('Invalid token or verification failed');
+      throw new UnauthorizedException('Invalid token or session expired');
     }
   }
 
@@ -71,12 +84,10 @@ export class JwtAuthGuard implements CanActivate {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.split(' ')[1];
     }
-    if (request.headers['secret']) {
-      return request.headers['secret'];
-    }
     if (request.headers['token']) {
-      return request.headers['token'];
+      return request.headers['token'] as string;
     }
+
     return null;
   }
 }

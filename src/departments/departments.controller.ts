@@ -14,45 +14,81 @@ import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ApiStatus } from '../common/constants/api-status.constants';
+import {
+  makeReturn,
+  makePaginationReturn,
+} from '../common/helpers/response.helper';
 
 @Controller('departments')
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  create(@Body() createDepartmentDto: CreateDepartmentDto) {
-    return this.departmentsService.create(createDepartmentDto);
+  async create(@Body() createDepartmentDto: CreateDepartmentDto) {
+    const department =
+      await this.departmentsService.create(createDepartmentDto);
+    return makeReturn({
+      statusCode: ApiStatus.CREATED,
+      message: 'Department created successfully',
+      data: department,
+    });
   }
 
   @Get()
-  findAll(
+  async findAll(
     @Query() query: PaginationQueryDto,
     @Query('is_active', new ParseBoolPipe({ optional: true }))
     isActive?: boolean,
   ) {
-    return this.departmentsService.findAll(query, isActive);
+    const { data, pagination } = await this.departmentsService.findAll(
+      query,
+      isActive,
+    );
+
+    return makePaginationReturn({
+      data,
+      total: pagination.total,
+      perPage: pagination.limit,
+      currentPage: pagination.page,
+    });
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.departmentsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const department = await this.departmentsService.findOne(id);
+    return makeReturn({ data: department });
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(id, updateDepartmentDto);
+    const department = await this.departmentsService.update(
+      id,
+      updateDepartmentDto,
+    );
+    return makeReturn({
+      message: 'Department updated successfully',
+      data: department,
+    });
   }
 
   @Patch(':id/toggle-status')
-  toggleStatus(@Param('id', ParseIntPipe) id: number) {
-    return this.departmentsService.toggleStatus(id);
+  async toggleStatus(@Param('id', ParseIntPipe) id: number) {
+    const department = await this.departmentsService.toggleStatus(id);
+    return makeReturn({
+      message: 'Department status toggled successfully',
+      data: department,
+    });
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.departmentsService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.departmentsService.remove(id);
+    return makeReturn({
+      message: 'Department deleted successfully',
+    });
   }
 }
