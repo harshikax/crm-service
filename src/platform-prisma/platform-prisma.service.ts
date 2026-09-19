@@ -17,9 +17,13 @@ export class PlatformPrismaService
   private pool: Pool;
 
   constructor() {
-    const connectionString =
-      process.env.PLATFORM_DATABASE_URL ||
-      'postgresql://postgres:root@127.0.0.1:5432/crm_platform_db?schema=public';
+    const connectionString = process.env.PLATFORM_DATABASE_URL;
+
+    if (!connectionString) {
+      throw new Error(
+        'PLATFORM_DATABASE_URL is not defined in environment variables',
+      );
+    }
 
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
