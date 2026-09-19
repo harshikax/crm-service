@@ -1969,6 +1969,7 @@ model staff {
   staff_password_histories                                              staff_password_histories[]
   ticket_categories_updated                                             ticket_categories[]                 @relation("category_updater")
   kb_categories_updated                                                 kb_categories[]                     @relation("kb_category_updater")
+  knowledge_base_updated                                                knowledge_base[]                    @relation("kb_article_updater")
   @@index([created_by], map: "staff_created_by_foreign")
   @@index([updated_by], map: "staff_updated_by_foreign")
 }
@@ -2476,12 +2477,14 @@ model knowledge_base {
   description       String              @db.LongText
   visibility        KbVisibility        @default(INTERNAL)
   created_by        BigInt              @db.UnsignedBigInt
+  updated_by        BigInt?             @db.UnsignedBigInt
   deleted_at        DateTime?           @db.Timestamp(0)
   created_at        DateTime            @default(now()) @db.Timestamp(0)
   updated_at        DateTime            @updatedAt @db.Timestamp(0)
   category          kb_categories       @relation(fields: [category_id], references: [id])
   tags              knowledge_base_tags[]
   ticket_links      ticket_kb[]
+  updater           staff?              @relation("kb_article_updater", fields: [updated_by], references: [id])
 }
 
 // KNOWLEDGE BASE TAGS

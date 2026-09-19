@@ -47,4 +47,10 @@ export class DropdownsController {
     const data = this.dropdownsService.getReceivedFrom();
     return makeReturn({ data });
   }
+
+  @Get('kb-tags')
+  async getKbTags() {
+    const data = await this.dropdownsService.getKbTags();
+    return makeReturn({ data });
+  }
 }

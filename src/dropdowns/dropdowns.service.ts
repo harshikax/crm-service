@@ -52,13 +52,22 @@ export class DropdownsService {
     return enumToDropdown(Priority);
   }
 
-  // System Types 
+  // System Types
   getSystemTypes() {
     return enumToDropdown(SystemType);
   }
 
-  // Received From 
+  // Received From
   getReceivedFrom() {
     return enumToDropdown(ReceivedFrom);
+  }
+
+  // KB Tags Dropdown
+  async getKbTags() {
+    const items = await this.prisma.kb_tags.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    return items.map((item) => ({ key: item.id, value: item.name }));
   }
 }

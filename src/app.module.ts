@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { KbCategoriesModule } from './kb-categories/kb-categories.module';
 import { DropdownsModule } from './dropdowns/dropdowns.module';
+import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DropdownsModule } from './dropdowns/dropdowns.module';
     TicketCategoriesModule,
     KbCategoriesModule,
     DropdownsModule,
+    KnowledgeBaseModule,
   ],
   controllers: [AppController],
   providers: [
