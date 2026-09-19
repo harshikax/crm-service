@@ -17,11 +17,11 @@ export class PlatformPrismaService
   private pool: Pool;
 
   constructor() {
-    const connectionString = process.env.PLATFORM_DATABASE_URL;
+    const connectionString = process.env.DATABASE_URL;
 
     if (!connectionString) {
       throw new Error(
-        'PLATFORM_DATABASE_URL is not defined in environment variables',
+        'DATABASE_URL is not defined in environment variables',
       );
     }
 
