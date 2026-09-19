@@ -19,7 +19,7 @@ export class KbCategoriesService {
         name: createKbCategoryDto.name,
         description: createKbCategoryDto.description,
         is_archived: createKbCategoryDto.is_archived ?? false,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }
@@ -95,7 +95,7 @@ export class KbCategoriesService {
       where: { id },
       data: {
         ...updateCategoryDto,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }
@@ -107,7 +107,7 @@ export class KbCategoriesService {
       where: { id },
       data: {
         is_archived: !category.is_archived,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }

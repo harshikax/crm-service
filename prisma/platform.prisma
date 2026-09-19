@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/platform-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ApplicationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+}
+
+// 1. TENANTS TABLE
+model tenants {
+  id                  Int                   @id @default(autoincrement())
+  slug                String                @unique @db.VarChar(100)
+  name                String                @db.VarChar(255)
+  status              TenantStatus          @default(ACTIVE)
+  db_name             String                @db.VarChar(100)
+  db_host             String?               @default("127.0.0.1") @db.VarChar(255)
+  db_port             Int?                  @default(5432)
+  db_user             String?               @default("postgres") @db.VarChar(100)
+  db_password         String?               @db.VarChar(255)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  applications        applications[]
+  connections         crm_connections[]
+  audit_logs          platform_audit_logs[]
+}
+
+// 2. APPLICATIONS TABLE (COD, DOM, CRM)
+model applications {
+  id                  Int                   @id @default(autoincrement())
+  tenant_id           Int
+  name                String                @db.VarChar(255)
+  slug                String                @db.VarChar(100)
+  status              ApplicationStatus     @default(ACTIVE)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  tenant              tenants               @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  oauth_clients       oauth_clients[]
+  connections         crm_connections[]
+  audit_logs          platform_audit_logs[]
+
+  @@unique([tenant_id, slug])
+}
+
+// 3. OAUTH CLIENTS TABLE
+model oauth_clients {
+  id                  Int                   @id @default(autoincrement())
+  application_id      Int
+  client_id           String                @unique @db.VarChar(100)
+  client_secret       String                @db.VarChar(255)
+  redirect_uris       String                @db.Text
+  scopes              String                @default("crm.access") @db.VarChar(255)
+  grant_types         String                @default("authorization_code,refresh_token") @db.VarChar(255)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  application         applications          @relation(fields: [application_id], references: [id], onDelete: Cascade)
+}
+
+// 4. CRM CONNECTIONS TABLE
+model crm_connections {
+  id                  Int                   @id @default(autoincrement())
+  tenant_id           Int
+  application_id      Int
+  status              ConnectionStatus      @default(DISCONNECTED)
+  connected_at        DateTime?
+  disconnected_at     DateTime?
+
+  tenant              tenants               @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  application         applications          @relation(fields: [application_id], references: [id], onDelete: Cascade)
+}
+
+// 5. CONSENTS TABLE
+model consents {
+  id                  Int                   @id @default(autoincrement())
+  user_id             BigInt
+  client_id           String                @db.VarChar(100)
+  scopes              String                @db.VarChar(255)
+  granted_at          DateTime              @default(now())
+}
+
+// 6. PLATFORM AUDIT LOGS
+model platform_audit_logs {
+  id                  Int                   @id @default(autoincrement())
+  tenant_id           Int?
+  application_id      Int?
+  action              String                @db.VarChar(100)
+  details             String?               @db.Text
+  ip_address          String?               @db.VarChar(50)
+  created_at          DateTime              @default(now())
+
+  tenant              tenants?              @relation(fields: [tenant_id], references: [id], onDelete: SetNull)
+  application         applications?         @relation(fields: [application_id], references: [id], onDelete: SetNull)
+}

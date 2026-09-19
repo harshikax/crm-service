@@ -39,7 +39,7 @@ export class KnowledgeBaseService {
         title: createArticleDto.title,
         description: createArticleDto.description,
         visibility: createArticleDto.visibility ?? KbVisibility.INTERNAL,
-        created_by: BigInt(userId ?? 1),
+        created_by: Number(userId ?? 1),
         tags: {
           create: tagIds.map((tagId) => ({
             tag: { connect: { id: tagId } },
@@ -191,7 +191,7 @@ export class KnowledgeBaseService {
         ...(updateArticleDto.visibility && {
           visibility: updateArticleDto.visibility,
         }),
-        ...(userId && { updated_by: BigInt(userId) }),
+        ...(userId && { updated_by: Number(userId) }),
         ...(tagIds && {
           tags: {
             create: tagIds.map((tagId) => ({
@@ -225,7 +225,7 @@ export class KnowledgeBaseService {
       where: { id },
       data: {
         deleted_at: new Date(),
-        ...(userId && { updated_by: BigInt(userId) }),
+        ...(userId && { updated_by: Number(userId) }),
       },
     });
   }

@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/tenant-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ReceivedFrom {
+  CLIENT
+  CUSTOMER
+}
+
+enum KbVisibility {
+  INTERNAL
+  PUBLIC
+}
+
+enum SystemType {
+  COD
+  DOM
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+// 1. TENANT USERS (Agents, Admins, Staff synced via OAuth/external app)
+model crm_users {
+  id                  Int                   @id @default(autoincrement())
+  external_user_id    String?               @unique @db.VarChar(100)
+  name                String                @db.VarChar(255)
+  email               String                @unique @db.VarChar(255)
+  phone               String?               @db.VarChar(50)
+  role                String                @default("AGENT") @db.VarChar(50)
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  created_tickets     tickets[]             @relation("ticket_creator")
+  assigned_tickets    tickets[]             @relation("ticket_assignee")
+  closed_tickets      tickets[]             @relation("ticket_closer")
+  ticket_comments     ticket_comments[]
+  ticket_status_hist  ticket_status_history[]
+  assigned_by_me      ticket_assignments[]  @relation("assignment_assigned_by")
+  assigned_to_me      ticket_assignments[]  @relation("assignment_assigned_to")
+  attachments         ticket_attachments[]
+  notifications       crm_notifications[]
+  created_kb          knowledge_base[]      @relation("kb_creator")
+  updated_kb          knowledge_base[]      @relation("kb_updater")
+  updated_categories  ticket_categories[]   @relation("ticket_cat_updater")
+  updated_kb_cats     kb_categories[]       @relation("kb_cat_updater")
+}
+
+// 2. CRM DEPARTMENTS
+model departments {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  description         String?               @db.VarChar(255)
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  tickets             tickets[]
+}
+
+// 3. TICKET CATEGORIES
+model ticket_categories {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  description         String?               @db.Text
+  is_archived         Boolean               @default(false)
+  updated_by          Int?
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  tickets             tickets[]
+  updater             crm_users?            @relation("ticket_cat_updater", fields: [updated_by], references: [id])
+}
+
+// 4. TICKETS
+model tickets {
+  id                  Int                   @id @default(autoincrement())
+  ticket_no           String                @unique @db.VarChar(50)
+  system_type         SystemType
+  waybill_no          String?               @db.VarChar(100)
+  received_from       ReceivedFrom
+  department_id       Int
+  category_id         Int
+  priority            Priority              @default(NORMAL)
+  status              TicketStatus          @default(OPEN)
+  inquiry             String                @db.VarChar(255)
+  inquiry_description String?               @db.Text
+  assigned_user_id    Int?
+  created_by          Int
+  closed_by           Int?
+
+  response_due_at     DateTime?
+  resolution_due_at   DateTime?
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  department          departments           @relation(fields: [department_id], references: [id])
+  category            ticket_categories     @relation(fields: [category_id], references: [id])
+  assigned_user       crm_users?            @relation("ticket_assignee", fields: [assigned_user_id], references: [id])
+  creator             crm_users             @relation("ticket_creator", fields: [created_by], references: [id])
+  closer              crm_users?            @relation("ticket_closer", fields: [closed_by], references: [id])
+
+  status_history      ticket_status_history[]
+  comments            ticket_comments[]
+  assignments         ticket_assignments[]
+  attachments         ticket_attachments[]
+  ticket_kb           ticket_kb[]
+  crm_notifications   crm_notifications[]
+}
+
+// 5. TICKET STATUS HISTORY
+model ticket_status_history {
+  id                  Int                   @id @default(autoincrement())
+  ticket_id           Int
+  status              TicketStatus
+  remarks             String?               @db.Text
+  changed_by          Int
+  created_at          DateTime              @default(now())
+
+  ticket              tickets               @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  user                crm_users             @relation(fields: [changed_by], references: [id])
+}
+
+// 6. TICKET COMMENTS
+model ticket_comments {
+  id                  Int                   @id @default(autoincrement())
+  ticket_id           Int
+  user_id             Int
+  comment             String                @db.Text
+  created_at          DateTime              @default(now())
+
+  ticket              tickets               @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  user                crm_users             @relation(fields: [user_id], references: [id])
+}
+
+// 7. TICKET ASSIGNMENTS
+model ticket_assignments {
+  id                  Int                   @id @default(autoincrement())
+  ticket_id           Int
+  assigned_to         Int
+  assigned_by         Int
+  assigned_at         DateTime              @default(now())
+
+  ticket              tickets               @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  assignee            crm_users             @relation("assignment_assigned_to", fields: [assigned_to], references: [id])
+  assigner            crm_users             @relation("assignment_assigned_by", fields: [assigned_by], references: [id])
+}
+
+// 8. TICKET ATTACHMENTS
+model ticket_attachments {
+  id                  Int                   @id @default(autoincrement())
+  ticket_id           Int
+  file_name           String                @db.VarChar(255)
+  file_path           String                @db.VarChar(500)
+  file_type           String                @db.VarChar(100)
+  file_size           BigInt
+  uploaded_by         Int
+  created_at          DateTime              @default(now())
+
+  ticket              tickets               @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  uploader            crm_users             @relation(fields: [uploaded_by], references: [id])
+}
+
+// 9. KB CATEGORIES
+model kb_categories {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(255)
+  description         String?               @db.Text
+  is_archived         Boolean               @default(false)
+  updated_by          Int?
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  articles            knowledge_base[]
+  updater             crm_users?            @relation("kb_cat_updater", fields: [updated_by], references: [id])
+}
+
+// 10. KNOWLEDGE BASE
+model knowledge_base {
+  id                  Int                   @id @default(autoincrement())
+  category_id         Int
+  title               String                @db.VarChar(255)
+  description         String                @db.Text
+  visibility          KbVisibility          @default(INTERNAL)
+  created_by          Int
+  updated_by          Int?
+  deleted_at          DateTime?
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  category            kb_categories         @relation(fields: [category_id], references: [id])
+  creator             crm_users             @relation("kb_creator", fields: [created_by], references: [id])
+  updater             crm_users?            @relation("kb_updater", fields: [updated_by], references: [id])
+  tags                knowledge_base_tags[]
+  ticket_links        ticket_kb[]
+}
+
+// 11. KB TAGS
+model kb_tags {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @unique @db.VarChar(100)
+  created_at          DateTime              @default(now())
+
+  articles            knowledge_base_tags[]
+}
+
+// 12. KB TAG RELATION
+model knowledge_base_tags {
+  kb_id               Int
+  tag_id              Int
+
+  kb                  knowledge_base        @relation(fields: [kb_id], references: [id], onDelete: Cascade)
+  tag                 kb_tags               @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([kb_id, tag_id])
+}
+
+// 13. TICKET KB RELATION
+model ticket_kb {
+  ticket_id           Int
+  kb_id               Int
+
+  ticket              tickets               @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  kb                  knowledge_base        @relation(fields: [kb_id], references: [id], onDelete: Cascade)
+
+  @@id([ticket_id, kb_id])
+}
+
+// 14. CRM NOTIFICATIONS
+model crm_notifications {
+  id                  Int                   @id @default(autoincrement())
+  user_id             Int
+  ticket_id           Int?
+  title               String                @db.VarChar(255)
+  message             String                @db.Text
+  is_read             Boolean               @default(false)
+  created_at          DateTime              @default(now())
+
+  ticket              tickets?              @relation(fields: [ticket_id], references: [id], onDelete: SetNull)
+  user                crm_users             @relation(fields: [user_id], references: [id])
+}

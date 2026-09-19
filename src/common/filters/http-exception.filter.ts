@@ -12,7 +12,7 @@ import {
   API_STATUS_MESSAGES,
 } from '../constants/api-status.constants';
 import { ApiResponseEnvelope } from '../interfaces/api-response.interface';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/tenant-prisma/client';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

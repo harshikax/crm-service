@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { PlatformPrismaModule } from './platform-prisma/platform-prisma.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { TicketCategoriesModule } from './ticket-categories/ticket-categories.module';
 import { AuthModule } from './auth/auth.module';
@@ -14,6 +15,7 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 @Module({
   imports: [
     PrismaModule,
+    PlatformPrismaModule, 
     AuthModule,
     DepartmentsModule,
     TicketCategoriesModule,

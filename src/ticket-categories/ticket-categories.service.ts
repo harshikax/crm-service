@@ -19,7 +19,7 @@ export class TicketCategoriesService {
         name: createCategoryDto.name,
         description: createCategoryDto.description,
         is_archived: createCategoryDto.is_archived ?? false,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }
@@ -93,7 +93,7 @@ export class TicketCategoriesService {
       where: { id },
       data: {
         ...updateCategoryDto,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }
@@ -105,7 +105,7 @@ export class TicketCategoriesService {
       where: { id },
       data: {
         is_archived: !category.is_archived,
-        updated_by: userId ? BigInt(userId) : undefined,
+        updated_by: userId ? Number(userId) : undefined,
       },
     });
   }
