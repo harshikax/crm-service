@@ -23,17 +23,13 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-
-    if (request.isAdminKey) {
-      return true;
-    }
-
     const user = request.adminUser;
     if (!user) {
       throw new ForbiddenException('User context is missing');
     }
 
     const isSuperAdmin =
+      Boolean(user.is_system) ||
       user.role?.toUpperCase() === 'SUPER_ADMIN' ||
       user.role?.toLowerCase() === 'super admin' ||
       user.permissions?.includes('*');

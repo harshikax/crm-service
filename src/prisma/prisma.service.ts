@@ -17,13 +17,10 @@ export class PrismaService
   private pool: Pool;
 
   constructor() {
-    const connectionString = process.env.TENANT_DATABASE_URL;
-
-    if (!connectionString) {
-      throw new Error(
-        'TENANT_DATABASE_URL is not defined in environment variables',
-      );
-    }
+    const connectionString =
+      process.env.TENANT_DATABASE_URL ||
+      process.env.DATABASE_URL ||
+      "postgresql://postgres:root@127.0.0.1:5432/postgres?schema=public";
 
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
@@ -35,10 +32,10 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('✅ Connected to Tenant Database');
-    } catch (error) {
+      this.logger.log('Connected to Tenant Database');
+    } catch {
       this.logger.warn(
-        '⚠️ Tenant Database not yet reachable (will connect once provisioned)',
+        'Tenant Database not yet reachable (will connect once provisioned)',
       );
     }
   }
