@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { SortOrder } from '../enums/crm.enum';
 
 export class PaginationQueryDto {
@@ -21,7 +21,7 @@ export class PaginationQueryDto {
 
   @IsOptional()
   @IsString()
-  sortBy?: string;
+  sortBy: string = 'id';
 
   @IsOptional()
   @IsEnum(SortOrder)
