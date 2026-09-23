@@ -10,7 +10,7 @@
     "seed:permissions": "ts-node -r tsconfig-paths/register scripts/seed-permissions.ts",
     "seed:initial": "ts-node -r tsconfig-paths/register scripts/seed-initial.ts",
     "seed:platform": "ts-node -r tsconfig-paths/register scripts/seed-permissions.ts",
-    "migrate:tenants": "node scripts/migrate-tenants.js",
+    "migrate:tenants": "yarn prisma:generate && node scripts/migrate-tenants.js",
     "build": "yarn prisma:generate && nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
