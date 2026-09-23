@@ -23,24 +23,15 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.adminUser;
+    const user = request.user;
     if (!user) {
       throw new ForbiddenException('User context is missing');
     }
 
-    const isSuperAdmin =
-      Boolean(user.is_system) ||
-      user.role?.toUpperCase() === 'SUPER_ADMIN' ||
-      user.role?.toLowerCase() === 'super admin' ||
-      user.permissions?.includes('*');
-
-    if (isSuperAdmin) {
+    const userPermissions: string[] = user.permissions || [];
+    if (userPermissions.includes('*')) {
       return true;
     }
-
-    const userPermissions: string[] = Array.isArray(user.permissions)
-      ? user.permissions
-      : [];
 
     const hasPermission = requiredPermissions.some((required) => {
       if (userPermissions.includes(required)) return true;
@@ -55,12 +46,10 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `Insufficient permissions. Required one of: [${requiredPermissions.join(', ')}]`,
+        `Insufficient permissions. Required: [${requiredPermissions.join(', ')}]`,
       );
     }
 
     return true;
   }
 }
-
-

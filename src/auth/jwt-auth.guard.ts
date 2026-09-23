@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { PlatformPrismaService } from '../platform-prisma/platform-prisma.service';
+import { RequestContext } from '../common/context/request-context';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
 @Injectable()
@@ -13,10 +15,10 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
+    private readonly platformPrisma: PlatformPrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -25,49 +27,55 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    const token = this.extractToken(request);
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers['authorization'];
 
-    if (!token) {
-      throw new UnauthorizedException('Authentication token is missing');
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Bearer token is required');
     }
 
+    const token = authHeader.split(' ')[1];
+
     try {
-      const decoded = this.jwtService.decode(token) as any;
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
 
-      if (!decoded || typeof decoded !== 'object') {
-        throw new UnauthorizedException('Invalid token structure');
+      if (!payload || typeof payload !== 'object') {
+        throw new UnauthorizedException('Invalid token');
       }
 
-      if (!decoded.token || typeof decoded.token !== 'string') {
-        throw new UnauthorizedException('Inner session token is missing');
+      if (payload.tenant_slug) {
+        const tenant = await this.platformPrisma.tenants.findUnique({
+          where: { slug: payload.tenant_slug },
+        });
+
+        if (!tenant || tenant.status !== 'ACTIVE') {
+          throw new UnauthorizedException('Tenant is inactive or not found');
+        }
+
+        RequestContext.setTenant(tenant.slug, tenant.db_name);
+
+        request.user = {
+          id: payload.sub,
+          name: payload.name,
+          email: payload.email,
+          role: payload.role,
+          tenant_slug: tenant.slug,
+          permissions: payload.permissions || [],
+        };
+        return true;
       }
 
-      const innerPayload = this.jwtService.decode(decoded.token) as any;
-      if (!innerPayload || typeof innerPayload !== 'object') {
-        throw new UnauthorizedException('Invalid inner session token');
+      if (typeof payload.sub === 'number') {
+        RequestContext.setUserId(payload.sub);
       }
-
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      if (innerPayload.exp && Number(innerPayload.exp) < currentTime) {
-        throw new UnauthorizedException('Token has expired');
-      }
-
-      const userData = decoded.user || {};
       request.user = {
-        id: userData.id
-          ? Number(userData.id)
-          : innerPayload.sub
-            ? Number(innerPayload.sub)
-            : undefined,
-        name: userData.name,
-        email: userData.email,
-        roles: decoded.role || [],
-        permissions: Array.isArray(decoded.permissions)
-          ? decoded.permissions.map((p: any) => p.authority || p.name || p)
-          : [],
-        guard: decoded.guard,
-        rawUser: userData,
+        id: payload.sub,
+        name: payload.name,
+        email: payload.email,
+        role: payload.role,
+        permissions: payload.permissions || [],
       };
 
       return true;
@@ -75,19 +83,7 @@ export class JwtAuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('Invalid token or session expired');
+      throw new UnauthorizedException('Invalid or expired token');
     }
-  }
-
-  private extractToken(request: any): string | null {
-    const authHeader = request.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      return authHeader.split(' ')[1];
-    }
-    if (request.headers['token']) {
-      return request.headers['token'] as string;
-    }
-
-    return null;
   }
 }

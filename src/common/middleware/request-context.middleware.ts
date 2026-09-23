@@ -10,9 +10,8 @@ export class RequestContextMiddleware implements NestMiddleware {
       req.ip ||
       req.socket?.remoteAddress;
 
-    RequestContext.run({ actor: 'anonymous', ip }, () => {
+    RequestContext.run({ ip }, () => {
       next();
     });
   }
 }
-

@@ -10,6 +10,11 @@ import { RolesController } from './roles/roles.controller';
 import { RolesService } from './roles/roles.service';
 import { PermissionsController } from './permissions/permissions.controller';
 import { PermissionsService } from './permissions/permissions.service';
+import { TenantsController } from './tenants/tenants.controller';
+import { TenantsService } from './tenants/tenants.service';
+import { TenantDatabaseService } from './tenants/tenant-database.service';
+import { ApplicationsController } from './applications/applications.controller';
+import { ApplicationsService } from './applications/applications.service';
 
 @Module({
   imports: [PlatformPrismaModule],
@@ -18,12 +23,17 @@ import { PermissionsService } from './permissions/permissions.service';
     AdminUsersController,
     RolesController,
     PermissionsController,
+    TenantsController,
+    ApplicationsController,
   ],
   providers: [
     AdminAuthService,
     AdminUsersService,
     RolesService,
     PermissionsService,
+    TenantsService,
+    TenantDatabaseService,
+    ApplicationsService,
     AdminKeyGuard,
     PermissionsGuard,
   ],
@@ -32,6 +42,9 @@ import { PermissionsService } from './permissions/permissions.service';
     AdminUsersService,
     RolesService,
     PermissionsService,
+    TenantsService,
+    TenantDatabaseService,
+    ApplicationsService,
     AdminKeyGuard,
     PermissionsGuard,
   ],

@@ -7,6 +7,7 @@ import {
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/tenant-prisma/client';
+import { RequestContext } from '../common/context/request-context';
 
 @Injectable()
 export class PrismaService
@@ -14,34 +15,88 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
-  private pool: Pool;
+  private readonly clientPool = new Map<
+    string,
+    { client: PrismaClient; pool: Pool }
+  >();
+  private defaultDbUrl: string;
 
   constructor() {
-    const connectionString =
-      process.env.TENANT_DATABASE_URL ||
-      process.env.DATABASE_URL ||
-      "postgresql://postgres:root@127.0.0.1:5432/postgres?schema=public";
+    const defaultDbUrl = process.env.DATABASE_URL;
+    if (!defaultDbUrl) {
+      throw new Error('DATABASE_URL is not defined in environment variables');
+    }
 
-    const pool = new Pool({ connectionString });
+    const defaultPool = new Pool({ connectionString: defaultDbUrl });
+    const defaultAdapter = new PrismaPg(defaultPool);
+    super({ adapter: defaultAdapter });
+
+    this.defaultDbUrl = defaultDbUrl;
+
+    return new Proxy(this, {
+      get: (target: any, prop: string | symbol) => {
+        if (
+          prop in target &&
+          typeof target[prop] === 'function' &&
+          ['getClient', 'onModuleInit', 'onModuleDestroy'].includes(
+            prop as string,
+          )
+        ) {
+          return target[prop].bind(target);
+        }
+        const client = target.getClient();
+        const value = client[prop];
+        if (typeof value === 'function') {
+          return value.bind(client);
+        }
+        return value;
+      },
+    });
+  }
+
+  public getClient(dbName?: string): PrismaClient {
+    const targetDbName = dbName || RequestContext.getDbName();
+    if (!targetDbName) {
+      const url = new URL(this.defaultDbUrl);
+      const defaultDbName = url.pathname.replace(/^\//, '') || 'postgres';
+      return this.getOrCreateClient(defaultDbName);
+    }
+    return this.getOrCreateClient(targetDbName);
+  }
+
+  private getOrCreateClient(dbName: string): PrismaClient {
+    if (this.clientPool.has(dbName)) {
+      return this.clientPool.get(dbName)!.client;
+    }
+
+    const url = new URL(this.defaultDbUrl);
+    url.pathname = `/${dbName}`;
+    const connectionString = url.toString();
+
+    const pool = new Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
     const adapter = new PrismaPg(pool);
+    const client = new PrismaClient({ adapter });
 
-    super({ adapter });
-    this.pool = pool;
+    this.clientPool.set(dbName, { client, pool });
+    this.logger.log(`Initialized dynamic connection pool for tenant DB '${dbName}'`);
+    return client;
   }
 
   async onModuleInit() {
-    try {
-      await this.$connect();
-      this.logger.log('Connected to Tenant Database');
-    } catch {
-      this.logger.warn(
-        'Tenant Database not yet reachable (will connect once provisioned)',
-      );
-    }
+    this.logger.log('PrismaService initialized with Dynamic Tenant DB Pooling');
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
-    await this.pool.end();
+    for (const [_dbName, { client, pool }] of this.clientPool.entries()) {
+      await client.$disconnect().catch(() => {});
+      await pool.end().catch(() => {});
+    }
+    this.clientPool.clear();
   }
 }
+

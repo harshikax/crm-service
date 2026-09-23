@@ -20,9 +20,7 @@ export class AdminKeyGuard implements CanActivate {
     const authHeader = request.headers['authorization'];
 
     if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException(
-        'Missing or invalid authorization token (Bearer token required)',
-      );
+      throw new UnauthorizedException('Bearer token is required');
     }
 
     const token = authHeader.split(' ')[1];
@@ -32,8 +30,8 @@ export class AdminKeyGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
 
-      if (!payload || !payload.sub || !payload.email) {
-        throw new UnauthorizedException('Invalid platform token payload');
+      if (!payload?.sub) {
+        throw new UnauthorizedException('Invalid platform token');
       }
 
       const user = await this.platformPrisma.platform_users.findUnique({
@@ -55,31 +53,25 @@ export class AdminKeyGuard implements CanActivate {
         throw new UnauthorizedException('Platform user not found or inactive');
       }
 
-      const roleName = user.role?.name || 'ADMIN';
-      const isSuperAdmin = Boolean(user.role?.is_system);
-      const effectivePermissions = isSuperAdmin
+      const permissions = user.role.is_system
         ? ['*']
-        : user.role?.role_permissions?.map((rp) => rp.permission.code) || [];
+        : user.role.role_permissions.map((rp) => rp.permission.code);
 
-      request.adminActor = user.email;
-      request.adminUser = {
+      request.user = {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: roleName,
-        is_system: isSuperAdmin,
-        permissions: effectivePermissions,
+        role: user.role.name,
+        permissions,
       };
 
-      RequestContext.setActor(user.email);
+      RequestContext.setUserId(user.id);
       return true;
     } catch (err: any) {
       if (err instanceof UnauthorizedException) {
         throw err;
       }
-      throw new UnauthorizedException(
-        `Invalid or expired platform token: ${err.message}`,
-      );
+      throw new UnauthorizedException('Invalid or expired platform token');
     }
   }
 }

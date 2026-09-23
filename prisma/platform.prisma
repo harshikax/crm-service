@@ -22,15 +22,6 @@ enum ApplicationStatus {
   REVOKED
 }
 
-enum ConnectionStatus {
-  CONNECTED
-  DISCONNECTED
-  PENDING_CONFIG
-  EXPIRED
-  REVOKED
-  SUSPENDED
-}
-
 // 1. TENANTS TABLE
 model tenants {
   id                  Int                   @id @default(autoincrement())
@@ -43,84 +34,53 @@ model tenants {
   updated_at          DateTime              @updatedAt
 
   applications        applications[]
-  connections         crm_connections[]
+  oauth_clients       oauth_clients[]
   audit_logs          platform_audit_logs[]
 }
 
-// 2. APPLICATIONS TABLE (COD, DOM, CRM)
+// 2. APPLICATIONS TABLE (COD, DOM, etc.)
 model applications {
   id                  Int                   @id @default(autoincrement())
   tenant_id           Int
   name                String                @db.VarChar(255)
-  slug                String                @db.VarChar(100)
   base_url            String                @db.VarChar(255)
   status              ApplicationStatus     @default(ACTIVE)
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
 
   tenant              tenants               @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  oauth_clients       oauth_clients[]
-  connections         crm_connections[]
   audit_logs          platform_audit_logs[]
-
-  @@unique([tenant_id, slug])
 }
 
-// 3. OAUTH CLIENTS TABLE
+// 3. OAUTH CLIENTS TABLE (Tenant Level Credentials)
 model oauth_clients {
   id                  Int                   @id @default(autoincrement())
-  application_id      Int
+  tenant_id           Int
   client_id           String                @unique @db.VarChar(100)
   client_secret       String                @db.VarChar(255)
-  client_secret_last4 String?               @db.VarChar(10)
   name                String                @db.VarChar(255)
   is_active           Boolean               @default(true)
-  redirect_uris       String[]
   scopes              String[]
-  grant_types         String[]
-  created_at          DateTime              @default(now())
-  updated_at          DateTime              @updatedAt
-
-  application         applications          @relation(fields: [application_id], references: [id], onDelete: Cascade)
-}
-
-// 4. CRM CONNECTIONS TABLE
-model crm_connections {
-  id                  Int                   @id @default(autoincrement())
-  tenant_id           Int
-  application_id      Int
-  status              ConnectionStatus      @default(DISCONNECTED)
-  connected_at        DateTime?
-  disconnected_at     DateTime?
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
 
   tenant              tenants               @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  application         applications          @relation(fields: [application_id], references: [id], onDelete: Cascade)
 }
 
-// 5. CONSENTS TABLE
-model consents {
-  id                  Int                   @id @default(autoincrement())
-  user_id             BigInt
-  client_id           String                @db.VarChar(100)
-  scopes              String                @db.VarChar(255)
-  granted_at          DateTime              @default(now())
-}
-
-// 6. PLATFORM AUDIT LOGS
+// 5. PLATFORM AUDIT LOGS
 model platform_audit_logs {
   id                  Int                   @id @default(autoincrement())
   tenant_id           Int?
   application_id      Int?
+  user_id             Int?
   action              String                @db.VarChar(100)
-  actor               String?               @db.VarChar(100)
   details             String?               @db.Text
   ip_address          String?               @db.VarChar(50)
   created_at          DateTime              @default(now())
 
   tenant              tenants?              @relation(fields: [tenant_id], references: [id], onDelete: SetNull)
   application         applications?         @relation(fields: [application_id], references: [id], onDelete: SetNull)
+  user                platform_users?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
 }
 
 // 7. PLATFORM ROLES
@@ -147,6 +107,7 @@ model platform_users {
   updated_at          DateTime              @updatedAt
 
   role                platform_roles        @relation(fields: [role_id], references: [id], onDelete: Restrict)
+  audit_logs          platform_audit_logs[]
 }
 
 // 9. PLATFORM PERMISSION CATEGORIES

@@ -1,0 +1,39 @@
+export enum TenantStatus {
+  PENDING = 'PENDING',
+  PROVISIONING = 'PROVISIONING',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  FAILED = 'FAILED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum ApplicationStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  REVOKED = 'REVOKED',
+}
+
+export enum PlatformAuditAction {
+  TENANT_PROVISION_STARTED = 'TENANT_PROVISION_STARTED',
+  TENANT_PROVISIONED = 'TENANT_PROVISIONED',
+  TENANT_STATUS_UPDATED = 'TENANT_STATUS_UPDATED',
+  TENANT_PROVISION_FAILED = 'TENANT_PROVISION_FAILED',
+  APPLICATION_CREATED = 'APPLICATION_CREATED',
+  APPLICATION_UPDATED = 'APPLICATION_UPDATED',
+  APPLICATION_REVOKED = 'APPLICATION_REVOKED',
+  OAUTH_CREDENTIALS_ROTATED = 'OAUTH_CREDENTIALS_ROTATED',
+}
+
+export enum OAuthScope {
+  CRM_ACCESS = 'crm:access',
+  CRM_TICKET_READ = 'crm:ticket:read',
+  CRM_TICKET_WRITE = 'crm:ticket:write',
+  CRM_WAYBILL_READ = 'crm:waybill:read',
+  CRM_KB_READ = 'crm:kb:read',
+}
+
+export enum OAuthGrantType {
+  AUTHORIZATION_CODE = 'authorization_code',
+  REFRESH_TOKEN = 'refresh_token',
+  CLIENT_CREDENTIALS = 'client_credentials',
+}

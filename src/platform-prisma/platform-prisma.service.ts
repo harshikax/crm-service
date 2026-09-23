@@ -1,23 +1,18 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '../generated/platform-prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { RequestContext } from '../common/context/request-context';
 
-const SENSITIVE_KEYS = new Set([
+const SENSITIVE_FIELDS = new Set([
   'password',
-  'salt',
-  'client_secret',
   'token',
   'secret',
+  'client_secret',
+  'plain_client_secret',
+  'authorization',
+  'access_token',
   'refresh_token',
-  'apikey',
-  'api_key',
 ]);
 
 const AUDITABLE_OPERATIONS = new Set([
@@ -25,19 +20,19 @@ const AUDITABLE_OPERATIONS = new Set([
   'createMany',
   'update',
   'updateMany',
+  'upsert',
   'delete',
   'deleteMany',
-  'upsert',
 ]);
 
-function sanitizeDetails(data: unknown): unknown {
-  if (!data || typeof data !== 'object') return data;
-  if (Array.isArray(data)) return data.map(sanitizeDetails);
+function sanitizeDetails(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeDetails);
 
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-      sanitized[key] = '***REDACTED***';
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
+      sanitized[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
       sanitized[key] = sanitizeDetails(value);
     } else {
@@ -47,19 +42,11 @@ function sanitizeDetails(data: unknown): unknown {
   return sanitized;
 }
 
-function extractSummary(result: unknown): Record<string, unknown> | undefined {
-  if (!result || typeof result !== 'object') return undefined;
-  if (Array.isArray(result)) return { count: result.length };
-
-  const record = result as Record<string, unknown>;
-  const summary: Record<string, unknown> = {};
-  if ('id' in record) summary.id = record.id;
-  if ('name' in record) summary.name = record.name;
-  if ('email' in record) summary.email = record.email;
-  if ('slug' in record) summary.slug = record.slug;
-  if ('code' in record) summary.code = record.code;
-
-  return Object.keys(summary).length > 0 ? summary : undefined;
+function extractSummary(result: any): string | null {
+  if (!result) return null;
+  if (typeof result.id !== 'undefined') return `id: ${result.id}`;
+  if (typeof result.count !== 'undefined') return `count: ${result.count}`;
+  return null;
 }
 
 @Injectable()
@@ -67,29 +54,37 @@ export class PlatformPrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(PlatformPrismaService.name);
-  private readonly pool: Pool;
+  private pool: Pool;
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
 
     if (!connectionString) {
-      throw new Error(
-        'DATABASE_URL is not defined in environment variables',
-      );
+      throw new Error('DATABASE_URL is not defined in environment variables');
     }
 
     const pool = new Pool({
       connectionString,
-      max: 20,
+      max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
     });
     const adapter = new PrismaPg(pool);
-
     super({ adapter });
     this.pool = pool;
 
+    return this.createExtendedClient(pool);
+  }
+
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+    await this.pool.end();
+  }
+
+  private createExtendedClient(pool: Pool) {
     const extended = this.$extends({
       query: {
         $allModels: {
@@ -104,7 +99,7 @@ export class PlatformPrismaService
             }
 
             try {
-              const actor = RequestContext.getActor();
+              const userId = RequestContext.getUserId() || null;
               const ipAddress = RequestContext.getIp();
               const action = `${(model || 'UNKNOWN').toUpperCase()}_${operation.toUpperCase()}`;
               const sanitizedArgs = sanitizeDetails(args);
@@ -112,10 +107,10 @@ export class PlatformPrismaService
 
               pool
                 .query(
-                  `INSERT INTO platform_audit_logs (action, actor, details, ip_address, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+                  `INSERT INTO platform_audit_logs (action, user_id, details, ip_address, created_at) VALUES ($1, $2, $3, $4, NOW())`,
                   [
                     action,
-                    actor,
+                    userId,
                     JSON.stringify({
                       operation,
                       model,
@@ -135,25 +130,5 @@ export class PlatformPrismaService
     });
 
     return extended as any;
-  }
-
-  async onModuleInit() {
-    try {
-      await this.$connect();
-      this.logger.log(
-        'Connected to Central Platform Database (crm_platform_db)',
-      );
-    } catch (error) {
-      this.logger.error(
-        'Failed to connect to Central Platform Database',
-        error,
-      );
-    }
-  }
-
-  async onModuleDestroy() {
-    await this.$disconnect();
-    await this.pool.end();
-    this.logger.log('Disconnected from Central Platform Database');
   }
 }

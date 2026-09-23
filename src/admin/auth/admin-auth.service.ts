@@ -16,7 +16,15 @@ export class AdminAuthService {
     const user = await this.platformPrisma.platform_users.findUnique({
       where: { email },
       include: {
-        role: true,
+        role: {
+          include: {
+            role_permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -29,17 +37,14 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const roleName = user.role?.name || 'ADMIN';
-
     const payload = {
       sub: user.id,
       email: user.email,
       name: user.name,
-      role: roleName,
+      role: user.role.name,
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
       expiresIn: '7d',
     });
 
@@ -49,7 +54,7 @@ export class AdminAuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: roleName,
+        role: user.role.name,
         created_at: user.created_at,
       },
     };
