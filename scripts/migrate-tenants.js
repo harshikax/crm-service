@@ -29,11 +29,9 @@ function getMigrationFiles() {
       const match = file.match(/^([0-9a-zA-Z_-]+)_(.+)\.sql$/);
       const version = match ? match[1] : file.replace(/\.sql$/, '');
       const name = match ? match[2] : file;
-      const version = file.replace(/\.sql$/, '');
       return {
         version,
         name,
-        name: file,
         fullPath: path.join(migrationsDir, file),
       };
     });
@@ -94,9 +92,14 @@ async function run() {
   console.log(`Found ${migrations.length} migration(s):`, migrations.map((m) => m.version).join(', '));
 
   // Connect to Central Platform DB to fetch active tenants
-  const platClient = new Client({ ...pgConfig, database: 'crm_platform_db' });
+  const defaultDbName =
+    new URL(process.env.DATABASE_URL).pathname.replace(/^\//, '') ||
+    'postgres';
+  const platClient = new Client({ ...pgConfig, database: defaultDbName });
   await platClient.connect();
-  const tenantsRes = await platClient.query('SELECT id, slug, db_name FROM "tenants" WHERE "status" = \'ACTIVE\'');
+  const tenantsRes = await platClient.query(
+    'SELECT id, slug, db_name FROM "tenants" WHERE "status" = \'ACTIVE\'',
+  );
   await platClient.end();
 
   const activeTenants = tenantsRes.rows;
