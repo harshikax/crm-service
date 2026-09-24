@@ -22,15 +22,13 @@ export class TenantDatabaseService {
       port: Number(dbUrl.port) || 5432,
       user: decodeURIComponent(dbUrl.username),
       password: decodeURIComponent(dbUrl.password),
+      database: dbUrl.pathname.replace(/^\//, '') || 'postgres',
     };
   }
 
   // Creates a new PostgreSQL database for a tenant
   async createDatabase(dbName: string): Promise<void> {
-    const rootClient = new Client({
-      ...this.getPgServerConfig(),
-      database: 'postgres',
-    });
+    const rootClient = new Client(this.getPgServerConfig());
 
     try {
       await rootClient.connect();
@@ -51,10 +49,7 @@ export class TenantDatabaseService {
 
   // Drops a tenant database (used for atomic rollback on provisioning failure).
   async dropDatabase(dbName: string): Promise<void> {
-    const rootClient = new Client({
-      ...this.getPgServerConfig(),
-      database: 'postgres',
-    });
+    const rootClient = new Client(this.getPgServerConfig());
 
     try {
       await rootClient.connect();

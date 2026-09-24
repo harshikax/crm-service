@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsEmail, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsIn,
+} from 'class-validator';
 
 export class TokenRequestDto {
   @IsNotEmpty({ message: 'client_id is required' })
@@ -9,17 +15,31 @@ export class TokenRequestDto {
   @IsString()
   client_secret: string;
 
-  @IsNotEmpty({ message: 'user_id is required' })
-  @IsString()
-  user_id: string;
+  @IsOptional()
+  @IsIn(['authorization_code', 'client_credentials'], {
+    message: "grant_type must be 'authorization_code' or 'client_credentials'",
+  })
+  grant_type?: 'authorization_code' | 'client_credentials';
 
-  @IsNotEmpty({ message: 'user_email is required' })
+  @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  redirect_uri?: string;
+
+  @IsOptional()
+  @IsString()
+  user_id?: string;
+
+  @IsOptional()
   @IsEmail({}, { message: 'A valid user_email is required' })
-  user_email: string;
+  user_email?: string;
 
-  @IsNotEmpty({ message: 'user_name is required' })
+  @IsOptional()
   @IsString()
-  user_name: string;
+  user_name?: string;
 
   @IsOptional()
   @IsString()

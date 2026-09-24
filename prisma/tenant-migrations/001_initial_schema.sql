@@ -226,149 +226,149 @@ CREATE UNIQUE INDEX IF NOT EXISTS "kb_tags_name_key" ON "kb_tags"("name");
 DO $$ BEGIN
     ALTER TABLE "ticket_categories" ADD CONSTRAINT "ticket_categories_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "crm_users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "tickets" ADD CONSTRAINT "tickets_department_id_fkey" FOREIGN KEY ("department_id") REFERENCES "departments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "tickets" ADD CONSTRAINT "tickets_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "ticket_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "tickets" ADD CONSTRAINT "tickets_assigned_user_id_fkey" FOREIGN KEY ("assigned_user_id") REFERENCES "crm_users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "tickets" ADD CONSTRAINT "tickets_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "tickets" ADD CONSTRAINT "tickets_closed_by_fkey" FOREIGN KEY ("closed_by") REFERENCES "crm_users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_status_history" ADD CONSTRAINT "ticket_status_history_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_status_history" ADD CONSTRAINT "ticket_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_comments" ADD CONSTRAINT "ticket_comments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_comments" ADD CONSTRAINT "ticket_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_assignments" ADD CONSTRAINT "ticket_assignments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_assignments" ADD CONSTRAINT "ticket_assignments_assigned_to_fkey" FOREIGN KEY ("assigned_to") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_assignments" ADD CONSTRAINT "ticket_assignments_assigned_by_fkey" FOREIGN KEY ("assigned_by") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_attachments" ADD CONSTRAINT "ticket_attachments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_attachments" ADD CONSTRAINT "ticket_attachments_uploaded_by_fkey" FOREIGN KEY ("uploaded_by") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "kb_categories" ADD CONSTRAINT "kb_categories_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "crm_users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "knowledge_base" ADD CONSTRAINT "knowledge_base_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "kb_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "knowledge_base" ADD CONSTRAINT "knowledge_base_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "knowledge_base" ADD CONSTRAINT "knowledge_base_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "crm_users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "knowledge_base_tags" ADD CONSTRAINT "knowledge_base_tags_kb_id_fkey" FOREIGN KEY ("kb_id") REFERENCES "knowledge_base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "knowledge_base_tags" ADD CONSTRAINT "knowledge_base_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "kb_tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_kb" ADD CONSTRAINT "ticket_kb_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "ticket_kb" ADD CONSTRAINT "ticket_kb_kb_id_fkey" FOREIGN KEY ("kb_id") REFERENCES "knowledge_base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "crm_notifications" ADD CONSTRAINT "crm_notifications_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "tickets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 
 -- AddForeignKey
 DO $$ BEGIN
     ALTER TABLE "crm_notifications" ADD CONSTRAINT "crm_notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "crm_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN null;
-END $;
+END $$;
 

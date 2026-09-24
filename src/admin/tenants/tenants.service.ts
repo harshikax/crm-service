@@ -119,6 +119,14 @@ export class TenantsService {
       where: { slug },
     });
     if (existing) {
+      if (existing.status === TenantStatus.FAILED) {
+        const dbName = existing.db_name || `crm_${slug}_db`;
+        await this.databaseService.dropDatabase(dbName);
+        await this.platformPrisma.tenants.delete({
+          where: { id: existing.id },
+        });
+        return;
+      }
       throw new ConflictException(`Tenant slug '${slug}' is already in use`);
     }
   }
@@ -127,18 +135,21 @@ export class TenantsService {
     tenantId: number,
     dbName: string,
     dbCreated: boolean,
-    err: any,
+    _err: any,
   ): Promise<void> {
     if (dbCreated) {
       await this.databaseService.dropDatabase(dbName);
     }
 
-    await this.platformPrisma.tenants.update({
-      where: { id: tenantId },
-      data: {
-        status: TenantStatus.FAILED,
-        error_message: err.message || 'Unknown provisioning error',
-      },
-    });
+    try {
+      await this.platformPrisma.tenants.delete({
+        where: { id: tenantId },
+      });
+    } catch (cleanupErr: any) {
+      this.logger.error(
+        `Failed to delete tenant record ${tenantId}:`,
+        cleanupErr,
+      );
+    }
   }
 }
